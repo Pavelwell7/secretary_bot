@@ -15,7 +15,10 @@ def ask_dialogflow(project_id: str, session_id: str, text: str, lang_code: str =
     text_input = dialogflow.TextInput(text=text, language_code=lang_code)
     query_input = dialogflow.QueryInput(text=text_input)
     response = session_client.detect_intent(session=session, query_input=query_input)
-    return response.query_result.fulfillment_text
+    fulfillment_text = response.query_result.fulfillment_text
+    is_fallback = response.query_result.intent.is_fallback
+
+    return fulfillment_text, is_fallback
 
 def main() -> None:
     env = Env()
@@ -47,15 +50,19 @@ def main() -> None:
                 continue
 
             logging.info(f"Запрос от vk-{user_id}: {text}")
-            ai_response = ask_dialogflow(
+            ai_response, is_fallback = ask_dialogflow(
                 project_id=project_id,
                 session_id=f"vk-{user_id}",
                 text=text
             )
+
+            if is_fallback:
+                continue
+
             vk.messages.send(
                 user_id=user_id,
                 message=ai_response,
-                random_id=random.randint(1, 10000)
+                random_id=random.randint(1, 1000000)
             )
 
 if __name__ == "__main__":
