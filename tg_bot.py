@@ -35,7 +35,7 @@ async def answer_user_question(message: types.Message, project_id: str) -> None:
 
     await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
 
-    ai_response, is_fallback = await asyncio.to_thread(
+    ai_response, _ = await asyncio.to_thread(
         ask_dialogflow,
         project_id=project_id,
         session_id=message.from_user.id,
