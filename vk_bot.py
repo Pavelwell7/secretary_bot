@@ -7,8 +7,9 @@ import traceback
 import requests
 import vk_api
 from environs import Env
-from google.cloud import dialogflow_v2 as dialogflow
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
+
+from dialogflow_api import ask_dialogflow
 
 
 class TelegramLogsHandler(logging.Handler):
@@ -21,18 +22,6 @@ class TelegramLogsHandler(logging.Handler):
         log_entry = self.format(record)
         url = f"https://api.telegram.org/bot{self.tg_bot_token}/sendMessage"
         requests.post(url, data={"chat_id": self.chat_id, "text": log_entry}, timeout=10)
-
-
-def ask_dialogflow(project_id: str, session_id: str, text: str, lang_code: str = "ru") -> str:
-    session_client = dialogflow.SessionsClient()
-    session = session_client.session_path(project_id, session_id)
-    text_input = dialogflow.TextInput(text=text, language_code=lang_code)
-    query_input = dialogflow.QueryInput(text=text_input)
-    response = session_client.detect_intent(session=session, query_input=query_input)
-    fulfillment_text = response.query_result.fulfillment_text
-    is_fallback = response.query_result.intent.is_fallback
-
-    return fulfillment_text, is_fallback
 
 
 def main() -> None:
@@ -61,27 +50,29 @@ def main() -> None:
     while True:
         try:
             for event in longpoll.listen():
-                if event.type == VkBotEventType.MESSAGE_NEW:
-                    user_id = event.obj.message['from_id']
-                    text = event.obj.message['text']
-                    if not text:
-                        continue
+                if event.type != VkBotEventType.MESSAGE_NEW:
+                    continue
 
-                    logging.info(f"Запрос от vk-{user_id}: {text}")
-                    ai_response, is_fallback = ask_dialogflow(
-                        project_id=project_id,
-                        session_id=f"vk-{user_id}",
-                        text=text
-                    )
+                user_id = event.obj.message['from_id']
+                text = event.obj.message['text']
+                if not text:
+                    continue
 
-                    if is_fallback:
-                        continue
+                logging.info(f"Запрос от vk-{user_id}: {text}")
+                ai_response, is_fallback = ask_dialogflow(
+                    project_id=project_id,
+                    session_id=f"vk-{user_id}",
+                    text=text
+                )
 
-                    vk.messages.send(
-                        user_id=user_id,
-                        message=ai_response,
-                        random_id=random.randint(1, 1000000)
-                    )
+                if is_fallback:
+                    continue
+
+                vk.messages.send(
+                    user_id=user_id,
+                    message=ai_response,
+                    random_id=random.randint(1, 1000000)
+                )
         except Exception:
             logger.error(f"VK-бот упал с ошибкой:\n{traceback.format_exc()}")
             time.sleep(5)

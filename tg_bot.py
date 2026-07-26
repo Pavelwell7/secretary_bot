@@ -8,7 +8,8 @@ import requests
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
 from environs import Env
-from google.cloud import dialogflow_v2 as dialogflow
+
+from dialogflow_api import ask_dialogflow
 
 
 class TelegramLogsHandler(logging.Handler):
@@ -23,27 +24,18 @@ class TelegramLogsHandler(logging.Handler):
         requests.post(url, data={"chat_id": self.chat_id, "text": log_entry}, timeout=10)
 
 
-def ask_dialogflow(project_id: str, session_id: str, text: str, lang_code: str = "ru") -> str:
-    session_client = dialogflow.SessionsClient()
-    session = session_client.session_path(project_id, session_id)
-    text_input = dialogflow.TextInput(text=text, language_code=lang_code)
-    query_input = dialogflow.QueryInput(text=text_input)
-    response = session_client.detect_intent(session=session, query_input=query_input)
-    return response.query_result.fulfillment_text
-
-
-async def command_start_handler(message: types.Message) -> None:
+async def greet_user(message: types.Message) -> None:
     await message.answer("Здоров!\n")
 
 
-async def dialogflow_handler(message: types.Message, project_id: str) -> None:
+async def answer_user_question(message: types.Message, project_id: str) -> None:
     if not message.text:
         await message.answer("Я умею обрабатывать только текстовые вопросы.")
         return
 
     await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
 
-    ai_response = await asyncio.to_thread(
+    ai_response, is_fallback = await asyncio.to_thread(
         ask_dialogflow,
         project_id=project_id,
         session_id=message.from_user.id,
@@ -72,8 +64,8 @@ async def main() -> None:
     logger.info("Бот запущен")
 
     dp = Dispatcher()
-    dp.message.register(command_start_handler, CommandStart())
-    dp.message.register(dialogflow_handler)
+    dp.message.register(greet_user, CommandStart())
+    dp.message.register(answer_user_question)
 
     while True:
         try:
