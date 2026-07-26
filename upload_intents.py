@@ -6,7 +6,7 @@ from google.cloud import dialogflow_v2 as dialogflow
 
 
 def create_intent(project_id: str, display_name: str, training_phrases_parts: list[str],
-                  message_texts: list[str]) -> None:
+                  message_texts: list[str]) -> str:
     intents_client = dialogflow.IntentsClient()
     parent = f"projects/{project_id}/agent"
     training_phrases = []
@@ -26,7 +26,7 @@ def create_intent(project_id: str, display_name: str, training_phrases_parts: li
 
     response = intents_client.create_intent(parent=parent, intent=intent)
 
-    print(f"Интент '{response.display_name}' успешно загружен и создан!")
+    return response.display_name
 
 
 def main() -> None:
@@ -35,19 +35,21 @@ def main() -> None:
 
     project_id = env("DIALOGFLOW_PROJECT_ID")
     credentials_path = env("GOOGLE_APPLICATION_CREDENTIALS")
+    questions_path = env("QUESTIONS_FILE_PATH", "questions.json")
 
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
 
-    with open("questions.json", "r", encoding="utf-8") as file:
+    with open(questions_path, "r", encoding="utf-8") as file:
         intents_data = json.load(file)
 
     for intent_name, data in intents_data.items():
-        create_intent(
+        display_name = create_intent(
             project_id=project_id,
             display_name=intent_name,
             training_phrases_parts=data["questions"],
             message_texts=[data["answer"]]
         )
+        print(f"Интент '{display_name}' успешно загружен и создан!")
 
 if __name__ == "__main__":
     main()

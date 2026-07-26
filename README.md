@@ -1,5 +1,7 @@
 # Умный бот-секретарь (Telegram + ВК + Dialogflow)
 
+![demo](assets/Гифка_tg_serсetary_bot.gif)
+
 Телеграм и ВК боты, которые автоматически отвечают на частые вопросы пользователей с помощью искусственного интеллекта от Google Dialogflow.
 
 ## Как это работает
@@ -30,6 +32,7 @@ DIALOGFLOW_PROJECT_ID=id_проекта_dialogflow
 GOOGLE_APPLICATION_CREDENTIALS=credentials.json
 VK_BOT_TOKEN=токен_группы_вк
 VK_GROUP_ID=id_группы_вк
+QUESTIONS_FILE_PATH=questions.json
 ```
 
 ## Как получить токены
@@ -54,6 +57,9 @@ VK_GROUP_ID=id_группы_вк
 
 **VK_GROUP_ID** - числовой ID вашей группы ВКонтакте:
 - Скопировать цифры из адресной строки вашей группы (например, из ссылки `vk.com/club240328937` ID будет `240328937`)
+
+**QUESTIONS_FILE_PATH** - путь к JSON-файлу с базой вопросов и ответов (опционально):
+- Если не указать, скрипт по умолчанию возьмёт `questions.json` из корня проекта
 
 ## Запуск
 
